@@ -23,23 +23,13 @@ def run_cli():
     predictor = CattleCarePredictor()
     print("Loaded trained model: models/checkpoints/xgboost_cattle_model.json")
     
-    # Locate dataset candidate
-    candidates = [
-        r"data\processed\hardware_compatible\behavior_training_windowed_1s.csv",
-        r"data\processed\hardware_compatible\behavior_training_windowed_1s.csv.gz",
-        r"data\processed\hardware_compatible\sample_behavior_data.csv"
-    ]
-    data_path = None
-    for c in candidates:
-        if os.path.exists(c):
-            data_path = c
-            break
-
-    if data_path is None:
-        print("Error: Hardware-compatible dataset not found!")
+    # Load test data
+    data_path = r"data\processed\hardware_compatible\behavior_training_windowed_1s.csv"
+    if not os.path.exists(data_path):
+        print(f"Error: Data file {data_path} not found!")
         return
 
-    print(f"Reading sensor stream from {data_path} for Cow: {args.cow}...")
+    print(f"Reading sensor stream for Cow: {args.cow}...")
     df = pd.read_csv(data_path)
     cow_df = df[df['cow_id'] == args.cow].copy()
     
