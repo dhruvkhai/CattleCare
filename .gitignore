@@ -1,0 +1,29 @@
+# Raw Kaggle Dataset (16.88 GB) - Preserved locally in raw archive
+sensor_data/
+
+# Large uncompressed datasets (> 100 MB GitHub file limit)
+data/processed/hardware_compatible/behavior_training_10hz.csv
+data/processed/hardware_compatible/behavior_training_10hz.csv.gz
+data/processed/hardware_compatible/behavior_training_windowed_1s.csv
+
+# Cached prediction probability arrays
+models/checkpoints/*.npy
+
+# Scratch and intermediate logs
+scratch/
+*.log
+
+# Python cache & build files
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+
+# Environment and IDE settings
+.gemini/
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,11 @@
+modality,description,file_count,total_records,raw_source,reason_excluded
+cbt,Core Body Temperature (rectal/vaginal implant),10,197920,sensor_data/main_data/cbt,Incompatible with CattleCare DHT11 ambient sensor
+pressure,Barometric pressure and elevation at neck,180,142270067,sensor_data/main_data/pressure,Incompatible; no barometer on CattleCare
+uwb_positioning,Indoor 3D positioning coordinates,180,944759,sensor_data/main_data/uwb,Incompatible; no UWB hardware or barn anchors
+uwb_distance,UWB anchor ranging distances and statistics,180,7558072,sensor_data/sub_data/uwb_distance,Incompatible; ESP32 does not perform UWB ranging
+ankle_accel,3-axis leg acceleration from ankle pedometer,10,197920,sensor_data/sub_data/ankle_accel,Incompatible sensor placement (leg vs neck)
+milk,Daily milking parlor milk weight and DIM,16,240,sensor_data/main_data/milk,Production parlor scale; unsupported by wearable collar
+visual_location,Overhead multi-camera computer vision localization,16,80640,sensor_data/sub_data/visual_location,Extracted from camera array; unsupported by wearable collar
+weather,Arlington external regional weather station records,17,N/A,sensor_data/main_data/weather,Regional weather; replaced by CattleCare DHT11 barn data
+stationary_tags_T13_T14,"Fixed roof calibration tags (IMMU, pressure, head direction, temp)",60,47423356,"sensor_data/**/T13*, T14*",Non-biological reference nodes
+unmatched_visual_labels_C11_C16,Ethological labels for cows C11-C16 without neck sensors,6,518400,sensor_data/behavior_labels/individual/C11_0725..C16_0725.csv,No collar sensor data collected for cows C11-C16

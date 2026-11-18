@@ -1,0 +1,73 @@
+{
+  "model_name": "Longitudinal Posture Monitoring (XGBoost)",
+  "features": [
+    "collar_temp_C",
+    "barn_temp_C",
+    "barn_humidity_per",
+    "THI",
+    "temp_diff",
+    "hour_sin",
+    "hour_cos"
+  ],
+  "cv_folds": [
+    {
+      "fold": 1,
+      "val_cows": [
+        "C01",
+        "C02"
+      ],
+      "accuracy": 0.6003227270435177,
+      "f1": 0.6438873163499124,
+      "roc_auc": 0.6392848660794946
+    },
+    {
+      "fold": 2,
+      "val_cows": [
+        "C03",
+        "C04"
+      ],
+      "accuracy": 0.6135091523372498,
+      "f1": 0.6471793219324694,
+      "roc_auc": 0.6628459391916527
+    },
+    {
+      "fold": 3,
+      "val_cows": [
+        "C05",
+        "C06"
+      ],
+      "accuracy": 0.5674953355856992,
+      "f1": 0.636521591727762,
+      "roc_auc": 0.6613845537674446
+    },
+    {
+      "fold": 4,
+      "val_cows": [
+        "C07",
+        "C08"
+      ],
+      "accuracy": 0.6063862293746181,
+      "f1": 0.6413956293787407,
+      "roc_auc": 0.6514777224506383
+    }
+  ],
+  "oof_accuracy": 0.596905053772953,
+  "oof_f1": 0.6421370911192016,
+  "oof_roc_auc": 0.6321822912706507,
+  "test_accuracy": 0.606373859109475,
+  "test_f1": 0.6560930478456252,
+  "test_roc_auc": 0.6486434574354373,
+  "test_sensitivity": 0.6384839650145773,
+  "test_specificity": 0.5605337250581467,
+  "test_confusion_matrix": [
+    [
+      9158,
+      7180
+    ],
+    [
+      8432,
+      14892
+    ]
+  ],
+  "elapsed_time_sec": 5.326690435409546
+}
