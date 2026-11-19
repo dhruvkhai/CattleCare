@@ -9,8 +9,15 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field
 
-sys.path.append('src')
-from predict import CattleCarePredictor
+# Ensure src is in sys.path for runtime execution
+SRC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'src')
+if SRC_DIR not in sys.path:
+    sys.path.insert(0, SRC_DIR)
+
+try:
+    from src.predict import CattleCarePredictor
+except ImportError:
+    from predict import CattleCarePredictor
 
 app = FastAPI(
     title="CattleCare AI Monitoring & ESP32 Ingestion Platform",

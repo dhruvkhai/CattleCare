@@ -4,7 +4,10 @@ import collections
 import numpy as np
 import pandas as pd
 import xgboost as xgb
-from features import FEATURE_COLS, CLASS_NAMES, add_engineered_features
+try:
+    from src.features import FEATURE_COLS, CLASS_NAMES, add_engineered_features
+except ImportError:
+    from features import FEATURE_COLS, CLASS_NAMES, add_engineered_features
 
 class RollingCowBuffer:
     """
