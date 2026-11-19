@@ -2,16 +2,21 @@ import os
 import sys
 import json
 import random
+from typing import Optional
 import pandas as pd
 import numpy as np
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 sys.path.append('src')
 from predict import CattleCarePredictor
 
-app = FastAPI(title="CattleCare AI Monitoring Platform")
+app = FastAPI(
+    title="CattleCare AI Monitoring & ESP32 Ingestion Platform",
+    description="Real-time livestock behavior classification and microclimate health monitoring powered by edge MPU6050 and DHT11 sensors.",
+    version="2.0.0"
+)
 
 predictor = CattleCarePredictor()
 
@@ -32,32 +37,35 @@ if DATA_PATH and os.path.exists(DATA_PATH):
 else:
     df_data = None
 
-class SensorPacket(BaseModel):
-    accel_x_mean: float = -4.2
-    accel_x_std: float = 0.5
-    accel_x_min: float = -5.0
-    accel_x_max: float = -3.5
-    accel_y_mean: float = 1.2
-    accel_y_std: float = 0.8
-    accel_y_min: float = 0.5
-    accel_y_max: float = 2.0
-    accel_z_mean: float = 8.5
-    accel_z_std: float = 0.6
-    accel_z_min: float = 7.5
-    accel_z_max: float = 9.5
-    accel_norm_mean: float = 9.8
-    accel_norm_std: float = 0.7
-    accel_norm_max: float = 10.5
-    pitch_mean: float = -62.0
-    pitch_std: float = 5.2
-    pitch_min: float = -70.0
-    pitch_max: float = -55.0
-    roll_mean: float = -5.0
-    roll_std: float = 3.0
-    collar_temp_C: float = 27.5
-    barn_temp_C: float = 24.0
-    barn_humidity_per: float = 65.0
-    THI: float = 73.5
+# --- DYNAMIC ESP32 PAYLOAD SCHEMA ---
+# Accepts ONLY what ESP32 hardware transmits: MPU6050 (x, y, z), DHT11 (temp, humidity), and optional timestamp/cow_id
+class ESP32RawPayload(BaseModel):
+    x: float = Field(..., description="MPU6050 raw/scaled X-axis acceleration (m/s^2 or g)")
+    y: float = Field(..., description="MPU6050 raw/scaled Y-axis acceleration (m/s^2 or g)")
+    z: float = Field(..., description="MPU6050 raw/scaled Z-axis acceleration (m/s^2 or g)")
+    temperature: float = Field(..., description="DHT11 ambient temperature in degrees Celsius")
+    humidity: float = Field(..., description="DHT11 relative humidity percentage (0-100%)")
+    timestamp: Optional[float] = Field(None, description="Optional ESP32 Unix epoch timestamp")
+    cow_id: Optional[str] = Field("COW_ESP32", description="Optional cow/RFID collar tag identifier")
+
+@app.post("/api/esp32/predict", summary="Direct ESP32 Hardware Ingestion Endpoint")
+def ingest_esp32_raw(payload: ESP32RawPayload):
+    """
+    Dedicated dynamic entry point for ESP32 neckband collar.
+    Receives ONLY raw sensor data: x, y, z from MPU6050, and temperature, humidity from DHT11.
+    All features (pitch, roll, norm, dynamic body acceleration, THI, rolling standard deviations)
+    are calculated dynamically in real-time.
+    """
+    res = predictor.predict_raw_esp32(
+        x=payload.x,
+        y=payload.y,
+        z=payload.z,
+        temperature=payload.temperature,
+        humidity=payload.humidity,
+        timestamp=payload.timestamp,
+        cow_id=payload.cow_id or "COW_ESP32"
+    )
+    return res
 
 @app.get("/api/cows")
 def get_cows():
@@ -106,11 +114,6 @@ def stream_sample(cow_id: str, count: int = 1):
         })
     return results
 
-@app.post("/api/predict")
-def predict_custom(packet: SensorPacket):
-    res = predictor.predict_sample(packet.dict())
-    return res
-
 @app.get("/", response_class=HTMLResponse)
 def index():
     return """
@@ -132,7 +135,7 @@ def index():
                     <span class="text-3xl">🐄</span>
                     <h1 class="text-2xl font-bold tracking-tight text-emerald-400">CattleCare AI Edge Monitor</h1>
                 </div>
-                <p class="text-sm text-slate-400 mt-1">Real-time Behavior Recognition & Microclimate Health Analytics (ESP32 + MPU6050 + DHT11)</p>
+                <p class="text-sm text-slate-400 mt-1">Dynamic ESP32 Ingestion (Raw MPU6050 X, Y, Z + DHT11 Temp, Humidity)</p>
             </div>
             <div class="flex items-center gap-3">
                 <label class="text-sm font-semibold text-slate-300">Select Cow:</label>
@@ -173,6 +176,48 @@ def index():
             </div>
         </div>
 
+        <!-- ESP32 Direct Raw Hardware Simulator -->
+        <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2">
+                    <span class="text-xl">📡</span>
+                    <h2 class="text-lg font-bold text-slate-200">ESP32 Hardware Transmitter Simulator (POST /api/esp32/predict)</h2>
+                </div>
+                <span class="text-xs bg-emerald-950 text-emerald-400 border border-emerald-800 px-3 py-1 rounded-full font-mono">Dynamic Processing: No Hardcoding</span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-4 text-xs font-mono">
+                <div>
+                    <label class="text-slate-400 block mb-1">MPU6050 Accel X (m/s²)</label>
+                    <input id="rawX" type="number" step="0.1" value="-4.2" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-cyan-300">
+                </div>
+                <div>
+                    <label class="text-slate-400 block mb-1">MPU6050 Accel Y (m/s²)</label>
+                    <input id="rawY" type="number" step="0.1" value="1.2" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-cyan-300">
+                </div>
+                <div>
+                    <label class="text-slate-400 block mb-1">MPU6050 Accel Z (m/s²)</label>
+                    <input id="rawZ" type="number" step="0.1" value="8.5" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-cyan-300">
+                </div>
+                <div>
+                    <label class="text-slate-400 block mb-1">DHT11 Temp (°C)</label>
+                    <input id="rawTemp" type="number" step="0.5" value="27.5" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-amber-300">
+                </div>
+                <div>
+                    <label class="text-slate-400 block mb-1">DHT11 Humidity (%)</label>
+                    <input id="rawHum" type="number" step="1" value="65" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-blue-300">
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 mt-4">
+                <button onclick="setPreset('feeding')" class="bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded text-xs font-mono text-slate-300">Preset: Feeding Head Down</button>
+                <button onclick="setPreset('lying')" class="bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded text-xs font-mono text-slate-300">Preset: Lying Rest</button>
+                <button onclick="setPreset('walking')" class="bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded text-xs font-mono text-slate-300">Preset: Walking</button>
+                <button onclick="sendRawESP32()" class="bg-blue-600 hover:bg-blue-500 px-5 py-1.5 rounded-lg text-xs font-bold font-mono text-white transition shadow-lg shadow-blue-900/30">
+                    Send ESP32 Packet →
+                </button>
+            </div>
+            <div id="esp32Result" class="mt-3 p-3 bg-slate-900/80 rounded border border-slate-700 text-xs font-mono text-slate-300 hidden"></div>
+        </div>
+
         <!-- Main Content Grid -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div class="lg:col-span-2 bg-slate-800 p-6 rounded-2xl border border-slate-700 space-y-4">
@@ -208,6 +253,56 @@ def index():
 
     <script>
         let chartInstance = null;
+
+        function setPreset(mode) {
+            if (mode === 'feeding') {
+                document.getElementById('rawX').value = '-9.2';
+                document.getElementById('rawY').value = '1.1';
+                document.getElementById('rawZ').value = '2.4';
+            } else if (mode === 'lying') {
+                document.getElementById('rawX').value = '-1.5';
+                document.getElementById('rawY').value = '0.5';
+                document.getElementById('rawZ').value = '9.7';
+            } else if (mode === 'walking') {
+                document.getElementById('rawX').value = '-4.5';
+                document.getElementById('rawY').value = '3.5';
+                document.getElementById('rawZ').value = '9.1';
+            }
+        }
+
+        async function sendRawESP32() {
+            const payload = {
+                x: parseFloat(document.getElementById('rawX').value),
+                y: parseFloat(document.getElementById('rawY').value),
+                z: parseFloat(document.getElementById('rawZ').value),
+                temperature: parseFloat(document.getElementById('rawTemp').value),
+                humidity: parseFloat(document.getElementById('rawHum').value),
+                timestamp: Math.floor(Date.now() / 1000),
+                cow_id: document.getElementById('cowSelect').value
+            };
+            const res = await fetch('/api/esp32/predict', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            const resDiv = document.getElementById('esp32Result');
+            resDiv.classList.remove('hidden');
+            resDiv.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <span>📡 <strong class="text-emerald-400">${data.predicted_behavior}</strong> (Confidence: ${data.confidence}%)</span>
+                    <span>Pitch: <strong class="text-cyan-300">${data.telemetry.pitch_angle}°</strong> | Movement: <strong class="text-amber-300">${data.telemetry.movement_intensity} m/s²</strong> | THI: <strong class="text-rose-400">${data.telemetry.THI}</strong> (${data.telemetry.heat_stress_level})</span>
+                </div>
+            `;
+            
+            document.getElementById('kpiBehavior').innerText = data.predicted_behavior;
+            document.getElementById('kpiConfidence').innerText = `Confidence: ${data.confidence}%`;
+            document.getElementById('kpiPitch').innerText = `${data.telemetry.pitch_angle}°`;
+            document.getElementById('kpiPitchStatus').innerText = data.telemetry.pitch_angle < -45 ? 'Feeding / Head Down' : (data.telemetry.pitch_angle > -15 ? 'Resting / Lying' : 'Upright Standing');
+            document.getElementById('kpiNorm').innerText = `${data.telemetry.movement_intensity} m/s²`;
+            document.getElementById('kpiTHI').innerText = `${data.telemetry.THI}`;
+            document.getElementById('kpiStress').innerText = `Status: ${data.telemetry.heat_stress_level}`;
+        }
 
         async function updateStats() {
             const cow = document.getElementById('cowSelect').value;
