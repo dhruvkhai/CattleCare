@@ -56,10 +56,13 @@ class CattleCarePredictor:
         
         # Euclidean acceleration norm
         norms = np.sqrt(xs**2 + ys**2 + zs**2)
+        safe_norms = np.where(norms > 1e-4, norms, 1.0)
         
-        # Biomechanical posture angles (degrees)
-        pitches = np.arctan2(-xs, np.sqrt(ys**2 + zs**2)) * (180.0 / np.pi)
-        rolls = np.arctan2(ys, zs) * (180.0 / np.pi)
+        # Exact CattleCare collar biomechanical posture angles (degrees)
+        # roll: lateral collar inclination angle
+        rolls = np.arcsin(np.clip(xs / safe_norms, -1.0, 1.0)) * (180.0 / np.pi)
+        # pitch: longitudinal head/neck elevation with 30-degree collar mounting calibration offset
+        pitches = (np.arctan2(-ys, -zs) * (180.0 / np.pi)) - 30.0
         
         # Barn Temperature-Humidity Index (THI)
         thi = (1.8 * temp + 32.0) - (0.55 - 0.0055 * humidity) * (1.8 * temp - 26.0)
